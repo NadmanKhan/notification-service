@@ -1,0 +1,14 @@
+{
+  "license": "MIT",
+  "scripts": {
+    "start": "npx tsx src/server.ts"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.8.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2"
+  }
+}

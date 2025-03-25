@@ -1,13 +1,13 @@
-export async function foldRetries<Result, FuncArgType, FuncErrorType = any>(
-    func: (arg: FuncArgType) => Promise<Result>,
+export async function foldRetries<Result, FuncArg, FuncError = any>(
+    func: (arg: FuncArg) => Promise<Result>,
     errorCallback: (
-        previousArg: FuncArgType,
-        previousError: FuncErrorType,
+        previousArg: FuncArg,
+        previousError: FuncError,
         fail: () => void,
-    ) => (FuncArgType | void) | Promise<FuncArgType | void>,
-    initialArg: FuncArgType
+    ) => (FuncArg | void) | Promise<FuncArg | void>,
+    initialArg: FuncArg
 ) {
-    let arg = initialArg;
+    let arg: FuncArg = initialArg;
     let done: boolean = false;
     const fail = () => { done = true; };
 

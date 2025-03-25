@@ -1,25 +1,16 @@
 export async function foldRetries<Result, FuncArg, FuncError = any>(
     func: (arg: FuncArg) => Promise<Result>,
-    errorCallback: (
-        previousArg: FuncArg,
-        previousError: FuncError,
-        fail: () => void,
-    ) => (FuncArg | void) | Promise<FuncArg | void>,
+    errorCallback: (previousArg: FuncArg, previousError: FuncError) => FuncArg | Promise<FuncArg>,
     initialArg: FuncArg
 ) {
-    let arg: FuncArg = initialArg;
-    let done: boolean = false;
-    const fail = () => { done = true; };
+    let arg = initialArg;
 
-    while (!done) {
+    while (true) {
         try {
             return await func(arg);
         } catch (error) {
-            const newArg = await errorCallback(arg, error, fail);
-            if (newArg === undefined) {
-                return;
-            }
-            arg = newArg;
+            const newArg = errorCallback(arg, error);
+            arg = (newArg instanceof Promise) ? await newArg : newArg;
         }
     }
 }

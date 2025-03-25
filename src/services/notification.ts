@@ -151,9 +151,9 @@ export async function sendNotification(notification: Notification) {
     const worker = async (providerIndex: number) => {
         const url = makeProviderUrl(notification.type, providerIndex);
         attemptCount += 1;
+        
         logger.info(`🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
         const response = await axios.post(url, notification.data);
-
         logger.info(`✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
 
         return response.data;

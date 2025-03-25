@@ -30,17 +30,24 @@ export type Notification = {
     data: Email;
 };
 
-class NotificationError extends Error {
+export class NotificationError extends Error {
     constructor(message: string) {
         super(message);
         this.name = "NotificationError";
     }
 }
 
-class NotificationValidationError extends NotificationError {
+export class NotificationValidationError extends NotificationError {
     constructor(message: string) {
         super(message);
         this.name = "NotificationValidationError";
+    }
+}
+
+export class NotificationSendError extends NotificationError {
+    constructor(message: string) {
+        super(message);
+        this.name = "NotificationSendError";
     }
 }
 
@@ -140,25 +147,26 @@ export async function sendNotification(notification: Notification) {
     });
     let attemptCount = 0;
 
+    // Worker function that tries to send the notification via a provider
     const worker = async (providerIndex: number) => {
         const url = makeProviderUrl(notification.type, providerIndex);
         attemptCount += 1;
         logger.info(`🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
-        const response = await axios.post<{ message: string }>(url, notification.data);
+        const response = await axios.post(url, notification.data);
 
         logger.info(`✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
-        
+
         return response.data;
     };
 
-    const retry = async (previousProviderIndex: number, fail: () => void) => {
+    // Error callback that retries the notification send operation
+    const retry = async (previousProviderIndex: number, previousError: Error) => {
         if (backoff.done) {
             logger.info(`❌ Failed to send ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}; exiting...`);
-            fail();
-            return;
+            throw new NotificationSendError(`Failed to send ${notification.type}; please try again later`);
         }
 
-        logger.info(`❗ Failed; retrying ${notification.type}...`);
+        logger.info(`❗ Failed with error "${JSON.stringify(previousError)}"; retrying...`);
 
         if (attemptCount % providers.length === 0) {
             await backoff.delay();
@@ -167,6 +175,5 @@ export async function sendNotification(notification: Notification) {
         return (previousProviderIndex + 1) % providers.length;
     };
 
-    const result = await foldRetries(worker, retry, getNextProviderIndex(notification.type));
-    return result;
+    return foldRetries(worker, retry, getNextProviderIndex(notification.type));
 }

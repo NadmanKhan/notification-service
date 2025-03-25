@@ -1,15 +1,15 @@
-export async function foldRetries<Result, FuncArg, FuncError = any>(
-    func: (arg: FuncArg) => Promise<Result>,
-    errorCallback: (previousArg: FuncArg, previousError: FuncError) => FuncArg | Promise<FuncArg>,
+export async function foldAttempts<Result, FuncArg, FuncError = any>(
+    attempt: (arg: FuncArg) => Promise<Result>,
+    retry: (previousArg: FuncArg, previousError: FuncError) => FuncArg | Promise<FuncArg>,
     initialArg: FuncArg
 ) {
     let arg = initialArg;
 
     while (true) {
         try {
-            return await func(arg);
+            return await attempt(arg);
         } catch (error) {
-            const newArg = errorCallback(arg, error);
+            const newArg = retry(arg, error);
             arg = (newArg instanceof Promise) ? await newArg : newArg;
         }
     }

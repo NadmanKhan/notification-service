@@ -1,6 +1,6 @@
 import config from "../config";
 import { ExponentialBackoff } from "../utils/backoff";
-import { foldRetries } from "../utils/retry";
+import { foldAttempts } from "../utils/retry";
 import logger from "../utils/logger";
 
 import axios from "axios";
@@ -147,10 +147,10 @@ export async function sendNotification(notification: Notification) {
     });
     let attemptCount = 0;
 
-    // Worker function that tries to send the notification via a provider
-    const worker = async (providerIndex: number) => {
-        const url = makeProviderUrl(notification.type, providerIndex);
+    // Main operation that sends the notification
+    const attempt = async (providerIndex: number) => {
         attemptCount += 1;
+        const url = makeProviderUrl(notification.type, providerIndex);
         
         logger.info(`🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
         const response = await axios.post(url, notification.data);
@@ -175,5 +175,5 @@ export async function sendNotification(notification: Notification) {
         return (previousProviderIndex + 1) % providers.length;
     };
 
-    return foldRetries(worker, retry, getNextProviderIndex(notification.type));
+    return foldAttempts(attempt, retry, getNextProviderIndex(notification.type));
 }

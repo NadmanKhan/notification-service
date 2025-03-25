@@ -19,8 +19,8 @@ router.post("/notification",
     async (req, res) => {
         try {
             const notification = req.body as Notification;
-            const response = await sendNotification(notification);
-            res.status(200).json({ success: true, response });
+            const result = await sendNotification(notification);
+            res.status(200).json({ success: true, result });
         } catch (error) {
             logger.error(`💥 ${error.message}`);
             res.status(500).json({ success: false, error: error.message });

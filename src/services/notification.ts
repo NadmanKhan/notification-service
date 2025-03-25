@@ -166,7 +166,8 @@ export async function sendNotification(notification: Notification) {
             throw new NotificationSendError(`Failed to send ${notification.type}; please try again later`);
         }
 
-        logger.info(`❗ Failed with error "${JSON.stringify(previousError)}"; retrying...`);
+        logger.info(`❗ Error while sending notification: ${JSON.stringify(previousError)}`);
+        logger.info(`🔄 Retrying ${notification.type} with a different provider...`);
 
         if (attemptCount % providers.length === 0) {
             await backoff.delay();

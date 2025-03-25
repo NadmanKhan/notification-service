@@ -48,10 +48,8 @@ class NotificationValidationError extends NotificationError {
 // * Global state
 // * ------------
 
-const roundRobin: {
-    index: Record<NotificationType, number>,
-} = {
-    index: { sms: 0, email: 0 },
+const roundRobin = {
+    providerIndex: { sms: 0, email: 0 },
 };
 
 // * ----------------
@@ -59,8 +57,8 @@ const roundRobin: {
 // * ----------------
 
 function getNextProviderIndex(type: NotificationType) {
-    const index = roundRobin.index[type];
-    roundRobin.index[type] = (index + 1) % config.providers[type].length;
+    const index = roundRobin.providerIndex[type];
+    roundRobin.providerIndex[type] = (index + 1) % config.providers[type].length;
     return index;
 }
 

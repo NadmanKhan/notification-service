@@ -1,31 +1,31 @@
 export class ExponentialBackoff {
     private firstDelayTime: number;
     private delayTimeMultiplier: number;
-    private maxAttemptCount: number;
+    private maxRetryCount: number;
     private maxJitter: number;
 
-    private currentAttemptCount: number;
+    private currentRetryCount: number;
     private currentDelayTime: number;
     private currentJitter: number;
 
     constructor({
         firstDelayTime,
         delayTimeMultiplier,
-        maxAttemptCount,
+        maxRetryCount: maxRetryCount,
         maxJitter = 0,
     }: {
         firstDelayTime: number;
         delayTimeMultiplier: number;
-        maxAttemptCount: number;
+        maxRetryCount: number;
         maxJitter?: number;
     }) {
         this.firstDelayTime = firstDelayTime;
         this.delayTimeMultiplier = delayTimeMultiplier;
-        this.maxAttemptCount = maxAttemptCount;
+        this.maxRetryCount = maxRetryCount;
         this.maxJitter = maxJitter;
 
-        this.currentAttemptCount = 0;
-        this.currentDelayTime = firstDelayTime;
+        this.currentRetryCount = 0;
+        this.currentDelayTime = this.firstDelayTime;
         this.currentJitter = this.maxJitter * (Math.random() - 0.5);
 
         if (this.maxJitter < 0 || this.maxJitter >= 1) {
@@ -38,11 +38,11 @@ export class ExponentialBackoff {
         if (delayTime === undefined) {
             throw new Error("Backoff is done");
         }
-        return new Promise(resolve => setTimeout(resolve, delayTime));
+        await new Promise(resolve => setTimeout(resolve, delayTime));
     }
 
     private next() {
-        if (this.currentAttemptCount >= this.maxAttemptCount) {
+        if (this.currentRetryCount >= this.maxRetryCount) {
             return { done: true, value: undefined };
         }
 
@@ -50,12 +50,12 @@ export class ExponentialBackoff {
 
         this.currentDelayTime *= this.delayTimeMultiplier;
         this.currentJitter = this.maxJitter * (Math.random() - 0.5);
-        this.currentAttemptCount += 1;
+        this.currentRetryCount += 1;
 
         return { done: false, value: delayTime };
     }
 
     get done() {
-        return this.currentAttemptCount >= this.maxAttemptCount;
+        return this.currentRetryCount >= this.maxRetryCount;
     }
 }

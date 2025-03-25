@@ -45,29 +45,36 @@ export async function sendNotification(notification: Notification) {
     const backoff = new ExponentialBackoff({
         firstDelayTime: 500,
         delayTimeMultiplier: 1.5,
-        maxAttemptCount: 5,
+        maxRetryCount: 10,
         maxJitter: 0.5,
     });
     let attemptCount = 0;
 
     const worker = async (providerIndex: number) => {
         const url = makeProviderUrl(notification.type, providerIndex);
-        console.log(new Date(), `Attempt #${attemptCount + 1}: Sending ${notification.type} via ${url}...`);
+        attemptCount += 1;
+        console.log(new Date(), `🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
         const response = await axios.post<{ message: string }>(url, notification.data);
         return response.data;
     };
 
-    const retry = async (previousProviderIndex: number): Promise<number> => {
-        if (backoff.done) throw new Error(`Failed to send ${notification.type} after multiple retries`);
+    const retry = async (previousProviderIndex: number, fail: () => void): Promise<number | void> => {
+        if (backoff.done) {
+            console.error(new Date(), `❌ Failed to send ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}; exiting...`);
+            fail();
+            return;
+        }
 
-        console.error(new Date(), `Retrying ${notification.type}...`);
+        console.error(new Date(), `❗ Failed; retrying ${notification.type}...`);
 
-        if (attemptCount++ % providers.length === 0) {
+        if (attemptCount % providers.length === 0) {
             await backoff.delay();
         }
 
         return (previousProviderIndex + 1) % providers.length;
     };
 
-    return foldRetries(worker, retry, roundRobin.nextProviderIndex(notification.type));
+    const result = await foldRetries(worker, retry, roundRobin.nextProviderIndex(notification.type));
+    console.log(new Date(), `✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
+    return result;
 }

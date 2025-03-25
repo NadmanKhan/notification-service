@@ -1,7 +1,13 @@
-import axios from "axios";
 import config from "../config";
 import { ExponentialBackoff } from "../utils/backoff";
 import { foldRetries } from "../utils/retry";
+import logger from "../utils/logger";
+
+import axios from "axios";
+
+// * -----
+// * Types
+// * -----
 
 export type Sms = {
     phone: string;
@@ -24,20 +30,102 @@ export type Notification = {
     data: Email;
 };
 
-const roundRobin: {
-    state: Record<NotificationType, number>,
-    nextProviderIndex: (type: NotificationType) => number,
-} = {
-    state: { sms: 0, email: 0 },
-    nextProviderIndex(type: NotificationType) {
-        const index = roundRobin.state[type];
-        roundRobin.state[type] = (index + 1) % config.providers[type].length;
-        return index;
+class NotificationError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "NotificationError";
     }
+}
+
+class NotificationValidationError extends NotificationError {
+    constructor(message: string) {
+        super(message);
+        this.name = "NotificationValidationError";
+    }
+}
+
+// * ------------
+// * Global state
+// * ------------
+
+const roundRobin: {
+    index: Record<NotificationType, number>,
+} = {
+    index: { sms: 0, email: 0 },
 };
+
+// * ----------------
+// * Helper functions
+// * ----------------
+
+function getNextProviderIndex(type: NotificationType) {
+    const index = roundRobin.index[type];
+    roundRobin.index[type] = (index + 1) % config.providers[type].length;
+    return index;
+}
+
+function validateSms(sms: any) {
+    const { phone, text } = sms;
+
+    const bangladeshiPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
+    if (!phone || !bangladeshiPhoneRegex.test(phone)) {
+        throw new NotificationValidationError("Invalid or missing phone number");
+    }
+
+    if (!text || typeof text !== "string" || text.trim().length === 0) {
+        throw new NotificationValidationError("Invalid or missing text");
+    }
+}
+
+function validateEmail(email: any) {
+    if (!email) {
+        throw new NotificationValidationError("Invalid or missing email data");
+    }
+
+    const { subject, body, recipients } = email;
+
+    if (!subject || typeof subject !== "string" || subject.trim().length === 0) {
+        throw new NotificationValidationError("Invalid or missing subject");
+    }
+
+    if (!body || typeof body !== "string" || body.trim().length === 0) {
+        throw new NotificationValidationError("Invalid or missing body");
+    }
+
+    if (!Array.isArray(recipients) || recipients.length === 0) {
+        throw new NotificationValidationError("Invalid or missing recipients list");
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    for (const email of recipients) {
+        if (!emailRegex.test(email)) {
+            throw new NotificationValidationError(`Invalid email in recipients: ${email}`);
+        }
+    }
+}
 
 function makeProviderUrl(type: NotificationType, index: number) {
     return `http://127.0.0.1:${config.providers[type][index].port}/api/${type}/provider${index + 1}`;
+}
+
+// * ----------------
+// * Public functions
+// * ----------------
+
+export function validateNotification(notification: any) {
+    if (!notification || typeof notification !== "object") {
+        throw new NotificationValidationError("Invalid or missing notification data");
+    }
+
+    const { type, data } = notification;
+
+    if (type === "sms") {
+        validateSms(data);
+    } else if (type === "email") {
+        validateEmail(data);
+    } else {
+        throw new NotificationValidationError("Invalid or missing notification type");
+    }
 }
 
 export async function sendNotification(notification: Notification) {
@@ -53,19 +141,19 @@ export async function sendNotification(notification: Notification) {
     const worker = async (providerIndex: number) => {
         const url = makeProviderUrl(notification.type, providerIndex);
         attemptCount += 1;
-        console.log(new Date(), `🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
+        logger.info(`🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
         const response = await axios.post<{ message: string }>(url, notification.data);
         return response.data;
     };
 
     const retry = async (previousProviderIndex: number, fail: () => void): Promise<number | void> => {
         if (backoff.done) {
-            console.error(new Date(), `❌ Failed to send ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}; exiting...`);
+            logger.info(`❌ Failed to send ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}; exiting...`);
             fail();
             return;
         }
 
-        console.error(new Date(), `❗ Failed; retrying ${notification.type}...`);
+        logger.info(`❗ Failed; retrying ${notification.type}...`);
 
         if (attemptCount % providers.length === 0) {
             await backoff.delay();
@@ -74,7 +162,7 @@ export async function sendNotification(notification: Notification) {
         return (previousProviderIndex + 1) % providers.length;
     };
 
-    const result = await foldRetries(worker, retry, roundRobin.nextProviderIndex(notification.type));
-    console.log(new Date(), `✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
+    const result = await foldRetries(worker, retry, getNextProviderIndex(notification.type));
+    logger.info(`✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
     return result;
 }

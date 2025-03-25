@@ -17,6 +17,16 @@ const config = {
         })),
     },
     server: { port: parseInt(process.env.PORT || "3010") },
+    logger: {
+        paths: {
+            info: process.env.INFO_LOG_FILE,
+            warn: process.env.WARN_LOG_FILE,
+            error: process.env.ERROR_LOG_FILE,
+            debug: process.env.DEBUG_LOG_FILE,
+            all: process.env.ALL_LOG_FILE,
+        },
+        clearLogs: process.env.CLEAR_LOGS?.toLowerCase() === "true",
+    },
 } as const;
 
 export default config;

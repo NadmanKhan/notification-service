@@ -145,10 +145,13 @@ export async function sendNotification(notification: Notification) {
         attemptCount += 1;
         logger.info(`🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
         const response = await axios.post<{ message: string }>(url, notification.data);
+
+        logger.info(`✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
+        
         return response.data;
     };
 
-    const retry = async (previousProviderIndex: number, fail: () => void): Promise<number | void> => {
+    const retry = async (previousProviderIndex: number, fail: () => void) => {
         if (backoff.done) {
             logger.info(`❌ Failed to send ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}; exiting...`);
             fail();
@@ -165,6 +168,5 @@ export async function sendNotification(notification: Notification) {
     };
 
     const result = await foldRetries(worker, retry, getNextProviderIndex(notification.type));
-    logger.info(`✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
     return result;
 }

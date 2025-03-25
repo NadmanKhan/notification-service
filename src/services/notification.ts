@@ -63,6 +63,10 @@ function getNextProviderIndex(type: NotificationType) {
 }
 
 function validateSms(sms: any) {
+    if (!sms || typeof sms !== "object") {
+        throw new NotificationValidationError("Invalid or missing SMS data");
+    }
+
     const { phone, text } = sms;
 
     const bangladeshiPhoneRegex = /^(?:\+88|88)?(01[3-9]\d{8})$/;
@@ -76,7 +80,7 @@ function validateSms(sms: any) {
 }
 
 function validateEmail(email: any) {
-    if (!email) {
+    if (!email || typeof email !== "object") {
         throw new NotificationValidationError("Invalid or missing email data");
     }
 

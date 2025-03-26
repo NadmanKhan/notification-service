@@ -41,7 +41,7 @@ export class ExponentialBackoff {
         await new Promise(resolve => setTimeout(resolve, delayTime));
     }
 
-    private next() {
+    next() {
         if (this.currentRetryCount >= this.maxRetryCount) {
             return { done: true, value: undefined };
         }
@@ -53,6 +53,10 @@ export class ExponentialBackoff {
         this.currentRetryCount += 1;
 
         return { done: false, value: delayTime };
+    }
+
+    get delayTime() {
+        return this.currentDelayTime + this.currentJitter;
     }
 
     get done() {

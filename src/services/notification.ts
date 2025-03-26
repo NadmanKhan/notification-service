@@ -117,6 +117,10 @@ function makeProviderUrl(type: NotificationType, index: number) {
     return `http://127.0.0.1:${config.providers[type][index].port}/api/${type}/provider${index + 1}`;
 }
 
+function makeNumbered(count: number, word: string) {
+    return `${count} ${word}${count > 1 ? "s" : ""}`;
+}
+
 // * ----------------
 // * Public functions
 // * ----------------
@@ -151,29 +155,32 @@ export async function sendNotification(notification: Notification) {
     const attempt = async (providerIndex: number) => {
         attemptCount += 1;
         const url = makeProviderUrl(notification.type, providerIndex);
-        
-        logger.info(`🎬 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
+
+        logger.info(`🚀 Attempt #${attemptCount}: Sending ${notification.type} via ${url}...`);
         const response = await axios.post(url, notification.data);
-        logger.info(`✅ Successfully sent ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}!`);
+        logger.info(`✅ Successfully sent ${notification.type} after ${makeNumbered(attemptCount, "attempt")}!`);
 
         return response.data;
     };
 
     // Error callback that retries the notification send operation
     const retry = async (previousProviderIndex: number, previousError: Error) => {
+        logger.info(`❗ Error while sending notification: ${JSON.stringify(previousError)}`);
+        
         if (backoff.done) {
-            logger.info(`❌ Failed to send ${notification.type} after ${attemptCount} attempt${attemptCount > 1 ? "s" : ""}; exiting...`);
+            logger.info(`❌ Failed to send ${notification.type} after ${makeNumbered(attemptCount, "attempt")}; exiting...`);
             throw new NotificationSendError(`Failed to send ${notification.type}; please try again later`);
         }
 
-        logger.info(`❗ Error while sending notification: ${JSON.stringify(previousError)}`);
-        logger.info(`🔄 Retrying ${notification.type} with a different provider...`);
-
         if (attemptCount % providers.length === 0) {
+            logger.info(`✋ All providers exhausted; waiting for ${backoff.delayTime} ms before retrying...`);
             await backoff.delay();
         }
 
-        return (previousProviderIndex + 1) % providers.length;
+        const nextProviderIndex = (previousProviderIndex + 1) % providers.length;
+        logger.info(`🔄 Retrying ${notification.type} via ${makeProviderUrl(notification.type, nextProviderIndex)}`);
+
+        return nextProviderIndex;
     };
 
     return foldAttempts(attempt, retry, getNextProviderIndex(notification.type));

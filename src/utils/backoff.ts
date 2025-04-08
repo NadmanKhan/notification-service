@@ -33,7 +33,7 @@ export class ExponentialBackoff {
         }
     }
 
-    async delay() {
+    async delayNext() {
         const delayTime = this.next().value;
         if (delayTime === undefined) {
             throw new Error("Backoff is done");
@@ -42,7 +42,7 @@ export class ExponentialBackoff {
     }
 
     next() {
-        if (this.currentRetryCount >= this.maxRetryCount) {
+        if (this.done) {
             return { done: true, value: undefined };
         }
 

@@ -1,3 +1,5 @@
+import type { NotificationType } from "../schemas/notification";
+
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -9,23 +11,24 @@ dotenv.config();
 
 const config = {
     providers: {
-        sms: [0, 1, 2].map(index => ({
-            port: parseInt(process.env[`PORT_SMS_${index + 1}`] || "8070") + index + 1
-        })),
-        email: [0, 1, 2].map(index => ({
-            port: parseInt(process.env[`PORT_EMAIL_${index + 1}`] || "8090") + index + 1
-        })),
+        smsNotifiers: [0, 1, 2].map(index => {
+            const port = parseInt(process.env[`PORT_SMS_${index + 1}`] || "8070") + index + 1;
+            return { url: `http://127.0.0.1:${port}/api/sms/provider${index + 1}` };
+        }),
+        emailNotifiers: [0, 1, 2].map(index => {
+            const port = parseInt(process.env[`PORT_EMAIL_${index + 1}`] || "8090") + index + 1;
+            return { url: `http://127.0.0.1:${port}/api/email/provider${index + 1}` };
+        }),
     },
-    server: { port: parseInt(process.env.PORT || "3010") },
+    server: {
+        port: parseInt(process.env.PORT || "3010")
+    },
     logger: {
-        paths: {
-            info: process.env.INFO_LOG_FILE,
-            warn: process.env.WARN_LOG_FILE,
-            error: process.env.ERROR_LOG_FILE,
-            debug: process.env.DEBUG_LOG_FILE,
-            all: process.env.ALL_LOG_FILE,
+        logLevel: process.env.LOG_LEVEL || "info",
+        logFile: {
+            path: process.env.LOG_FILE_PATH || "logs/notification-service.log",
+            clearOnStartup: process.env.LOG_FILE_CLEAR_ON_STARTUP?.toLowerCase() === "true",
         },
-        clearLogs: process.env.CLEAR_LOGS?.toLowerCase() === "true",
     },
 } as const;
 

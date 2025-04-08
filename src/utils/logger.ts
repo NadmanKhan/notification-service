@@ -65,7 +65,7 @@ export const CONSOLE_STYLE_CMDS = {
 
 export const LOG_LEVELS = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'] as const;
 
-export const LOG_LEVELS_RANK: Record<LogLevel, number> = {
+export const LOG_LEVEL_RANKS: Record<LogLevel, number> = {
     trace: 0,
     debug: 1,
     info: 2,
@@ -161,7 +161,7 @@ export class StructuredLog {
 
 export class Logger {
     private logFilePath?: string;
-    private logLevelRank: number = LOG_LEVELS_RANK[DEFAULT_LOG_LEVEL];
+    private logLevelRank: number = LOG_LEVEL_RANKS[DEFAULT_LOG_LEVEL];
     private logLevel: LogLevel = DEFAULT_LOG_LEVEL;
     private logLevelColorRule: LogLevelColorRule = DEFAULT_LOG_LEVEL_COLOR_RULE;
 
@@ -169,7 +169,7 @@ export class Logger {
         // Set properties
         this.logFilePath = options?.logFile?.path;
         this.logLevel = options?.logLevel || DEFAULT_LOG_LEVEL;
-        this.logLevelRank = LOG_LEVELS_RANK[this.logLevel];
+        this.logLevelRank = LOG_LEVEL_RANKS[this.logLevel];
         this.logLevelColorRule = {
             ...DEFAULT_LOG_LEVEL_COLOR_RULE,
             ...options?.logLevelColorRule,
@@ -196,7 +196,7 @@ export class Logger {
         { level, messageColorRule }: LogOptions = { level: 'info' },
     ) {
 
-        if (this.logLevelRank > LOG_LEVELS_RANK[level]) {
+        if (this.logLevelRank < LOG_LEVEL_RANKS[level]) {
             return;
         }
 

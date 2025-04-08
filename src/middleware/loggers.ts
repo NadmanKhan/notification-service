@@ -4,7 +4,7 @@ import logger from "../config/logger";
 export const requestLogger: RequestHandler = (req, _res, next) => {
   const { method, url } = req;
   const logMessage = `Request: ${method} ${url}`;
-  logger.info(logMessage, { messageColorRule: { fg: 'FgBlue' } });
+  logger.debug(logMessage, { messageColorRule: { fg: 'FgBlue' } });
   next();
 };
 
@@ -18,6 +18,6 @@ export const errorLogger: ErrorRequestHandler = (err: Error, _req, _res, next) =
 export const responseLogger: RequestHandler = (_req, res, next) => {
   const { statusCode } = res;
   const logMessage = `Response status: ${statusCode}`;  
-  logger.info(logMessage, { messageColorRule: { fg: 'FgGreen' } });
+  logger.debug(logMessage, { messageColorRule: { fg: 'FgGreen' } });
   next();
 };

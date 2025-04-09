@@ -196,7 +196,7 @@ export class Logger {
         { level, messageColorRule }: LogOptions = { level: 'info' },
     ) {
 
-        if (this.logLevelRank < LOG_LEVEL_RANKS[level]) {
+        if (this.logLevelRank > LOG_LEVEL_RANKS[level]) {
             return;
         }
 

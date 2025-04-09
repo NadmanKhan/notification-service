@@ -169,6 +169,9 @@ export class Logger {
         // Set properties
         this.logFilePath = options?.logFile?.path;
         this.logLevel = options?.logLevel || DEFAULT_LOG_LEVEL;
+        if (!(this.logLevel in LOG_LEVEL_RANKS)) {
+            this.logLevel = DEFAULT_LOG_LEVEL;
+        }
         this.logLevelRank = LOG_LEVEL_RANKS[this.logLevel];
         this.logLevelColorRule = {
             ...DEFAULT_LOG_LEVEL_COLOR_RULE,

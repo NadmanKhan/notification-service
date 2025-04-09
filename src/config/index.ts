@@ -24,7 +24,7 @@ const config = {
         port: parseInt(process.env.PORT || "3010")
     },
     logger: {
-        logLevel: process.env.LOG_LEVEL || "info",
+        logLevel: process.env.LOG_LEVEL?.toLowerCase() || "info",
         logFile: {
             path: process.env.LOG_FILE_PATH || "logs/notification-service.log",
             clearOnStartup: process.env.LOG_FILE_CLEAR_ON_STARTUP?.toLowerCase() === "true",

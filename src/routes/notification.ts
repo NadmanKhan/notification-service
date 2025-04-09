@@ -3,7 +3,7 @@ import type { Notification } from "../schemas/notification";
 import * as service from "../services/notification";
 import logger from "../config/logger";
 import { notificationSchema } from "../schemas/notification";
-import { validateRequestBody } from "../middleware/validators";
+import { validateRequest } from "../middleware/validators";
 
 import { Router, RequestHandler } from "express";
 
@@ -23,7 +23,7 @@ const sendNotification: RequestHandler = async (req: { body: Notification }, res
 
 const router = Router();
 router.post("/notification",
-    validateRequestBody(notificationSchema),
+    validateRequest({ body: notificationSchema }),
     sendNotification,
 );
 
